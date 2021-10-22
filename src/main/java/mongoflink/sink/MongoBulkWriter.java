@@ -1,9 +1,14 @@
 package mongoflink.sink;
 
 import com.mongodb.MongoException;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.WriteModel;
 import lombok.extern.slf4j.Slf4j;
 import mongoflink.config.SinkConfiguration;
 import mongoflink.internal.connection.MongoClientProvider;
@@ -165,25 +170,28 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                 DocumentBulk bulk = iterator.next();
                 do {
                     try {
-                        UpdateOptions options = new UpdateOptions().upsert(true);
-                        List<String> keyList = new ArrayList<>();
+                        //UpdateOptions options = new UpdateOptions().upsert(true);
                         List<Document> documents = bulk.getDocuments();
                         if (documents.size()==0){
                             log.info("|Mongdb操作|Mongo非事务flush操作|待刷写数据集为空跳出此次刷写|");
                             break;
                         }
+
+                        List<WriteModel<Document>> batchOperateList = new ArrayList<>();
                         documents.forEach(new Consumer<Document>() {
                             @Override
                             public void accept(Document document) {
-                                keyList.add(String.valueOf(document.get("_id")));
+                                Bson filter = Filters.eq("_id", document.get("_id"));
+                                UpdateOneModel<Document> updateOneModel = new UpdateOneModel<>(filter, new Document("$set", document));
+                                batchOperateList.add(updateOneModel);
                             }
                         });
-                        Bson query = in("_id",keyList);
-                        Bson updates = Updates.combine(
-                                documents);
-                        // ordered, non-bypass mode
-                        collection.insertMany(bulk.getDocuments());
-                        //collection.updateMany(query,new Document("$set",updates),options);
+                        BulkWriteOptions options = new BulkWriteOptions();
+                        // 关闭排序后，mongo会对writeModelList操作重新排序，提高效率
+                        options.ordered(false);
+                        BulkWriteResult bulkWriteResult = collection.bulkWrite(batchOperateList, options);
+                        log.info("【mongo数据处理】BulkWrite操作是否成功="+bulkWriteResult.wasAcknowledged());
+                        log.info("【mongo数据处理】BulkWrite操作成功文档数="+bulkWriteResult.getInsertedCount());
                         iterator.remove();
                         break;
                     } catch (MongoException e) {
