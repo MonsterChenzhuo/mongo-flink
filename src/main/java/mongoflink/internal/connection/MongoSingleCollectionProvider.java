@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * A simple implementation of {@link MongoClientProvider}.
  **/
 public class MongoSingleCollectionProvider implements MongoClientProvider {

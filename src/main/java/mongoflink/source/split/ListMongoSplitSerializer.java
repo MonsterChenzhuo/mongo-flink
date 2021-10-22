@@ -11,6 +11,8 @@ import java.nio.ByteOrder;
 import java.util.List;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * Simple serializer for a list of {@link MongoSplit}.
  **/
 public class ListMongoSplitSerializer implements SimpleVersionedSerializer<List<MongoSplit>> {

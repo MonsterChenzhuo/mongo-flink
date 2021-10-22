@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * MongoSplitEnumerator generates {@link MongoSplit} according to partition strategies.
  **/
 public class MongoSplitEnumerator implements SplitEnumerator<MongoSplit, List<MongoSplit>> {

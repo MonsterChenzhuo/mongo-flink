@@ -27,7 +27,7 @@ class StringDocumentSerializer implements DocumentSerializer<String> {
     public Document serialize(String string) {
         Document document = new Document();
         String[] elements = string.split(",");
-        document.append("word", elements[0]);
+        document.append("_id", elements[0]);
         document.append("count", Integer.parseInt(elements[1]));
         return document;
     }

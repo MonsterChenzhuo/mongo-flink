@@ -6,6 +6,8 @@ import org.apache.flink.util.PropertiesUtil;
 import java.util.Properties;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * Simple factory for {@link SinkConfiguration}.
  **/
 public class SinkConfigurationFactory {

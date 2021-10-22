@@ -18,6 +18,8 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * A split strategy that splits a collection via key ranges (default to '_id' field).
  * The ranges are automatically calculated based on collection stats and sampling.
  **/

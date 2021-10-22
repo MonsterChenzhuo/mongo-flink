@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * DocumentBulk is buffered {@link Document} in memory, which would be written to MongoDB in a single transaction.
  * Due to execution efficiency, each DocumentBulk maybe be limited to a maximum size, typically 1,000 documents. But
  * for the transactional mode, the maximum size should not be respected because all that data must be written in one

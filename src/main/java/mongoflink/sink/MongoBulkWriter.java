@@ -2,14 +2,20 @@ package mongoflink.sink;
 
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
+import lombok.extern.slf4j.Slf4j;
 import mongoflink.config.SinkConfiguration;
 import mongoflink.internal.connection.MongoClientProvider;
 import mongoflink.serde.DocumentSerializer;
 
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
+import org.bson.BsonArray;
+import org.bson.BsonString;
 import org.bson.Document;
 
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,10 +28,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Updates.set;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * Writer for MongoDB sink.
  **/
+@Slf4j
 public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, DocumentBulk> {
 
     private final MongoClientProvider collectionProvider;
@@ -74,7 +88,9 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                                         try {
                                             rollBulkIfNeeded(true);
                                             flush();
+                                            log.info("|Mongdb操作|完成一次Mongo非事务flush操作|");
                                         } catch (Exception e) {
+                                            log.error("|Mongodb操作|Mongo非事务flush操作异常|");
                                             flushException = e;
                                         }
                                     }
@@ -100,6 +116,7 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
     public void write(IN o, Context context) throws IOException {
         checkFlushException();
         rollBulkIfNeeded();
+        log.info("|Flink操作|将数据流缓存至桶中");
         currentBulk.add(serializer.serialize(o));
     }
 
@@ -117,6 +134,7 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
         inProgressAndPendingBulks.add(currentBulk);
         inProgressAndPendingBulks.addAll(pendingBulks);
         pendingBulks.clear();
+        log.info("|Flink操作|进行一次数据快照状态上报|");
         return inProgressAndPendingBulks;
     }
 
@@ -147,13 +165,30 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                 DocumentBulk bulk = iterator.next();
                 do {
                     try {
+                        UpdateOptions options = new UpdateOptions().upsert(true);
+                        List<String> keyList = new ArrayList<>();
+                        List<Document> documents = bulk.getDocuments();
+                        if (documents.size()==0){
+                            log.info("|Mongdb操作|Mongo非事务flush操作|待刷写数据集为空跳出此次刷写|");
+                            break;
+                        }
+                        documents.forEach(new Consumer<Document>() {
+                            @Override
+                            public void accept(Document document) {
+                                keyList.add(String.valueOf(document.get("_id")));
+                            }
+                        });
+                        Bson query = in("_id",keyList);
+                        Bson updates = Updates.combine(
+                                documents);
                         // ordered, non-bypass mode
                         collection.insertMany(bulk.getDocuments());
+                        //collection.updateMany(query,new Document("$set",updates),options);
                         iterator.remove();
                         break;
                     } catch (MongoException e) {
                         // maybe partial failure
-                        LOGGER.error("Failed to flush data to MongoDB", e);
+                        log.error("|Mongdb操作|Mongo非事务flush操作异常|Failed to flush data to MongoDB", e);
                     }
                 } while (!closed && retryPolicy.shouldBackoffRetry());
             }
@@ -164,7 +199,7 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
         try {
             collection.listIndexes();
         } catch (MongoException e) {
-            LOGGER.warn("Connection is not available, try to reconnect", e);
+            LOGGER.warn("|Mongdb操作|Connection is not available, try to reconnect", e);
             collectionProvider.recreateClient();
         }
     }

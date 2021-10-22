@@ -3,6 +3,8 @@ package mongoflink.config;
 import java.io.Serializable;
 
 /**
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  * Configuration for {@link mongoflink.sink.MongoSink}.
  **/
 public class SinkConfiguration implements Serializable {
