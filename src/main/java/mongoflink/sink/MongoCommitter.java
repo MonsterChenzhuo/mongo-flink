@@ -4,17 +4,26 @@ import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.TransactionOptions;
 import com.mongodb.WriteConcern;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.InsertManyResult;
 import lombok.extern.slf4j.Slf4j;
 import mongoflink.internal.connection.MongoClientProvider;
 import org.apache.flink.api.connector.sink.Committer;
 import org.bson.Document;
+import org.bson.conversions.Bson;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author chenzhuoyu
@@ -47,16 +56,30 @@ public class MongoCommitter implements Committer<DocumentBulk> {
         for (DocumentBulk bulk : committables) {
             if (bulk.getDocuments().size() > 0) {
                 log.info("|Flink操作|进行一次带有事务的Mongodb操作提交|");
-//                CommittableTransaction transaction = new CommittableTransaction(collection, bulk.getDocuments());
                 try (ClientSession session = client.startSession()){
                     session.startTransaction();
-                    InsertManyResult insertManyResult = collection.insertMany(session, bulk.getDocuments());
-                    if (!insertManyResult.wasAcknowledged()){
+                    List<Document> documents = bulk.getDocuments();
+
+                    List<WriteModel<Document>> batchOperateList = new ArrayList<>();
+                    documents.forEach(new Consumer<Document>() {
+                        @Override
+                        public void accept(Document document) {
+                            Bson filter = Filters.eq("_id", document.get("_id"));
+                            UpdateOptions options = new UpdateOptions().upsert(true);
+                            UpdateOneModel<Document> updateOneModel = new UpdateOneModel<>(filter, new Document("$set", document),options);
+                            batchOperateList.add(updateOneModel);
+                        }
+                    });
+                    BulkWriteOptions options = new BulkWriteOptions();
+                    // 关闭排序后，mongo会对writeModelList操作重新排序，提高效率
+                    options.ordered(false);
+                    BulkWriteResult bulkWriteResult = collection.bulkWrite(batchOperateList, options);
+                    log.info("【mongo数据处理】BulkWrite操作是否成功="+bulkWriteResult.wasAcknowledged());
+                    if (!bulkWriteResult.wasAcknowledged()){
                         log.info("|Mongodb操作|进行写入失败进行事务回滚|");
                         session.abortTransaction();
                     }
                     session.commitTransaction();
-                    //session.withTransaction(transaction, txnOptions);
                     log.info("|Mongodb操作|完成一次写入提交事务|");
                 } catch (Exception e) {
                     // save to a new list that would be retried

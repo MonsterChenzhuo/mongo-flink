@@ -182,7 +182,8 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                             @Override
                             public void accept(Document document) {
                                 Bson filter = Filters.eq("_id", document.get("_id"));
-                                UpdateOneModel<Document> updateOneModel = new UpdateOneModel<>(filter, new Document("$set", document));
+                                UpdateOptions options = new UpdateOptions().upsert(true);
+                                UpdateOneModel<Document> updateOneModel = new UpdateOneModel<>(filter, new Document("$set", document),options);
                                 batchOperateList.add(updateOneModel);
                             }
                         });
@@ -191,7 +192,6 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                         options.ordered(false);
                         BulkWriteResult bulkWriteResult = collection.bulkWrite(batchOperateList, options);
                         log.info("【mongo数据处理】BulkWrite操作是否成功="+bulkWriteResult.wasAcknowledged());
-                        log.info("【mongo数据处理】BulkWrite操作成功文档数="+bulkWriteResult.getInsertedCount());
                         iterator.remove();
                         break;
                     } catch (MongoException e) {

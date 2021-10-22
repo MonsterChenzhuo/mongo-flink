@@ -1,7 +1,6 @@
 import mongoflink.StringDocumentSerializer;
 import mongoflink.config.MongoOptions;
 import mongoflink.sink.MongoSink;
-import mongoflink.sink.MongoTransactionalSinkTest;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
@@ -39,10 +38,10 @@ public class MinDemo {
         properties.setProperty(MongoOptions.SINK_FLUSH_ON_CHECKPOINT, "false");
         properties.setProperty(MongoOptions.SINK_FLUSH_SIZE, String.valueOf(5L));
         properties.setProperty(MongoOptions.SINK_FLUSH_INTERVAL, String.valueOf(10_000L));
-
-        DataStreamSource<String> stringDataStreamSource = env.socketTextStream("192.168.220.102", 8888);
-
-        stringDataStreamSource
+        long rps = 50;
+        long rows = 1000L;
+        env.addSource(new DataGeneratorSource<>(new StringGenerator(), rps, rows))
+                .returns(String.class)
     .sinkTo(new MongoSink<>("mongodb://admin:SM67q89izW4itH7%25@192.168.220.180:27017/dev", "dev", "mycollection",
                 new StringDocumentSerializer(), properties));
         env.execute("cdcc");
