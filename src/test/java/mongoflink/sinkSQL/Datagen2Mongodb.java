@@ -11,9 +11,8 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import static org.apache.flink.table.api.Expressions.$;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class Datagen2Mongodb {
 
