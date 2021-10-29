@@ -5,9 +5,8 @@ import org.apache.flink.table.factories.DynamicTableFactory;
 import java.util.Map;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class ContextUtil {
     public static void transformContext(DynamicTableFactory factory, DynamicTableFactory.Context context) {
@@ -20,4 +19,5 @@ public class ContextUtil {
             catalogOptions.put(entry.getKey(), entry.getValue());
         }
     }
+
 }

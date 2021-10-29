@@ -26,7 +26,7 @@ public class SinkConfigurationFactory {
         // validate config
         if (configuration.isTransactional()) {
             Preconditions.checkArgument(configuration.isFlushOnCheckpoint(),
-                    "`%s` must be true when the transactional sink is enabled",
+                    "`%s` must be true when the transactional sinkSQL is enabled",
                     MongoOptions.SINK_FLUSH_ON_CHECKPOINT);
         }
         Preconditions.checkArgument(configuration.getBulkFlushSize() > 0,

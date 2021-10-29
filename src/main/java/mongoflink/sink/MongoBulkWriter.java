@@ -42,7 +42,7 @@ import static com.mongodb.client.model.Updates.set;
 /**
  * @author chenzhuoyu
  * @date 2021/9/17 22:13
- * Writer for MongoDB sink.
+ * Writer for MongoDB sinkSQL.
  **/
 @Slf4j
 public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, DocumentBulk> {

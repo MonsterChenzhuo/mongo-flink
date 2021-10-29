@@ -4,9 +4,8 @@ package mongoflink.sinkSQL.sink;
 import mongoflink.sinkSQL.MongodbConf;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class MongodbSinkConf extends MongodbConf {
     private final int batchSize;

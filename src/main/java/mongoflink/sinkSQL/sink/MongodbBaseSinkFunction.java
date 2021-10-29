@@ -16,9 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public abstract class MongodbBaseSinkFunction<IN> extends RichSinkFunction<IN> implements CheckpointedFunction {
     private final MongodbSinkConf mongodbSinkConf;

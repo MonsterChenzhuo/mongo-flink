@@ -9,9 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class MongodbUpsertSinkFunction extends MongodbBaseSinkFunction<RowData> {
     private final DynamicTableSink.DataStructureConverter converter;

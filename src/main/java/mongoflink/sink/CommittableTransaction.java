@@ -1,4 +1,4 @@
-//package mongoflink.sink;
+//package mongoflink.sinkSQL;
 //
 //import com.mongodb.client.MongoCollection;
 //import com.mongodb.client.TransactionBody;

@@ -85,9 +85,10 @@ public class MongoSplitEnumerator implements SplitEnumerator<MongoSplit, List<Mo
     }
 
     @Override
-    public List<MongoSplit> snapshotState(long checkpointId) throws Exception {
+    public List<MongoSplit> snapshotState() throws Exception {
         return pendingSplits;
     }
+
 
     @Override
     public void close() throws IOException {

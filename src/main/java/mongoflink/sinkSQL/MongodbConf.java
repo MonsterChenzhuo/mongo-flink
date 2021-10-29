@@ -3,9 +3,8 @@ package mongoflink.sinkSQL;
 import java.io.Serializable;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class MongodbConf implements Serializable {
     private static final long serialVersionUID = 1L;

@@ -19,7 +19,7 @@ import java.util.Properties;
 /**
  * @author chenzhuoyu
  * @date 2021/9/17 22:13
- * <p> Flink sink connector for MongoDB. MongoSink supports transaction mode for MongoDB 4.2+ and non-transaction mode for
+ * <p> Flink sinkSQL connector for MongoDB. MongoSink supports transaction mode for MongoDB 4.2+ and non-transaction mode for
  * Mongo 3.0+. </p>
  *
  * <p> In transaction mode, all writes will be buffered in memory and committed to MongoDB in per-taskmanager

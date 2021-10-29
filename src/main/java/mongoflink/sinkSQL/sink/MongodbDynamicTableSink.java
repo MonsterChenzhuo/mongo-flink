@@ -6,9 +6,8 @@ import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkFunctionProvider;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class MongodbDynamicTableSink implements DynamicTableSink {
     private final MongodbSinkConf mongodbSinkConf;

@@ -1,8 +1,8 @@
 package mongoflink.sinkSQL;
 
+import mongoflink.sinkSQL.util.ContextUtil;
 import mongoflink.sinkSQL.sink.MongodbDynamicTableSink;
 import mongoflink.sinkSQL.sink.MongodbSinkConf;
-import mongoflink.sinkSQL.util.ContextUtil;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
@@ -18,9 +18,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created on 2021/9/14.
- *
- * @author MariaCarrie
+ * @author chenzhuoyu
+ * @date 2021/9/17 22:13
  */
 public class MongodbDynamicTableSinkFactory implements DynamicTableSinkFactory {
 
@@ -46,7 +45,7 @@ public class MongodbDynamicTableSinkFactory implements DynamicTableSinkFactory {
     public static final ConfigOption<Integer> BATCH_SIZE = ConfigOptions.key("batchSize".toLowerCase())
             .intType()
             .defaultValue(Integer.valueOf(1024))
-            .withDescription("The batch size when sink invoking.");
+            .withDescription("The batch size when sinkSQL invoking.");
 
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
@@ -59,7 +58,7 @@ public class MongodbDynamicTableSinkFactory implements DynamicTableSinkFactory {
         MongodbSinkConf mongodbSinkConf = new MongodbSinkConf((String) helper.getOptions().get(DATABASE), (String) helper.getOptions().get(COLLECTION_NAME), (String) helper.getOptions().get(URI), ((Integer) helper.getOptions().get(MAX_CONNECTION_IDLE_TIME)).intValue(), ((Integer) helper.getOptions().get(BATCH_SIZE)).intValue());
 
         TableSchema physicalSchema = TableSchemaUtils.getPhysicalSchema(context.getCatalogTable().getSchema());
-        LOG.info("Create dynamic mongoDB table sink: {}.", mongodbSinkConf);
+        LOG.info("Create dynamic mongoDB table sinkSQL: {}.", mongodbSinkConf);
         return new MongodbDynamicTableSink(mongodbSinkConf, physicalSchema);
     }
 
