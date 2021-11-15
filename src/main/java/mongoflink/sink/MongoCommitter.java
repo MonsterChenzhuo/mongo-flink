@@ -45,9 +45,9 @@ public class MongoCommitter implements Committer<DocumentBulk> {
             .writeConcern(WriteConcern.MAJORITY)
             .build();
 
-    public MongoCommitter(MongoClientProvider clientProvider) {
-        this.client = clientProvider.getClient();
-        this.collection = clientProvider.getDefaultCollection();
+    public MongoCommitter(MongoClient mongoClient,MongoCollection<Document> collection) {
+        this.client = mongoClient;
+        this.collection = collection;
     }
 
     @Override

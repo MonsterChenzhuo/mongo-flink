@@ -18,6 +18,7 @@ import java.util.List;
 /**
  * @author chenzhuoyu
  * @date 2021/9/17 22:13
+ *  建立连接，插入数据
  */
 public abstract class MongodbBaseSinkFunction<IN> extends RichSinkFunction<IN> implements CheckpointedFunction {
     private final MongodbSinkConf mongodbSinkConf;

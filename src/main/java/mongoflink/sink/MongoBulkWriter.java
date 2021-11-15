@@ -2,7 +2,9 @@ package mongoflink.sink;
 
 import com.mongodb.MongoException;
 import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOneModel;
@@ -47,8 +49,6 @@ import static com.mongodb.client.model.Updates.set;
 @Slf4j
 public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, DocumentBulk> {
 
-    private final MongoClientProvider collectionProvider;
-
     private transient MongoCollection<Document> collection;
 
     private DocumentBulk currentBulk;
@@ -73,15 +73,22 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoBulkWriter.class);
 
-    public MongoBulkWriter(MongoClientProvider collectionProvider,
+    public MongoBulkWriter(
+                           MongoCollection<Document> collection,
                            DocumentSerializer<IN> serializer,
-                           SinkConfiguration configuration) {
-        this.collectionProvider = collectionProvider;
+                           long maxSize,
+                           long bulkFlushInterval,
+                           boolean flushOnCheckpoint
+                           ) {
+
         this.serializer = serializer;
-        this.maxSize = configuration.getBulkFlushSize();
+        this.maxSize = maxSize;
         this.currentBulk = new DocumentBulk(maxSize);
-        this.flushOnCheckpoint = configuration.isFlushOnCheckpoint();
-        if (!flushOnCheckpoint && configuration.getBulkFlushInterval() > 0) {
+        this.flushOnCheckpoint = flushOnCheckpoint;
+        this.collection = collection;
+        this.serializer = serializer;
+
+        if (!flushOnCheckpoint && bulkFlushInterval > 0) {
             this.scheduler =
                     Executors.newScheduledThreadPool(
                             1, new ExecutorThreadFactory("mongodb-bulk-writer"));
@@ -101,14 +108,14 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
                                     }
                                 }
                             },
-                            configuration.getBulkFlushInterval(),
-                            configuration.getBulkFlushInterval(),
+                            bulkFlushInterval,
+                            bulkFlushInterval,
                             TimeUnit.MILLISECONDS);
         }
     }
 
     public void initializeState(List<DocumentBulk> recoveredBulks) {
-        collection = collectionProvider.getDefaultCollection();
+
         for (DocumentBulk bulk: recoveredBulks) {
             for (Document document: bulk.getDocuments()) {
                 rollBulkIfNeeded();
@@ -208,7 +215,6 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
             collection.listIndexes();
         } catch (MongoException e) {
             LOGGER.warn("|Mongdb操作|Connection is not available, try to reconnect", e);
-            collectionProvider.recreateClient();
         }
     }
 
@@ -256,7 +262,6 @@ public class MongoBulkWriter<IN> implements SinkWriter<IN, DocumentBulk, Documen
             try {
                 Thread.sleep(backoffMillis);
             } catch (InterruptedException e) {
-                // exit backoff
             }
         }
 
