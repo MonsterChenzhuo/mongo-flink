@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.WriteConcern.MAJORITY;
 
+
 /**
  * @author chenzhuoyu
  * @date 2021/9/17 22:13
@@ -40,29 +41,29 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
 
     private DocumentSerializer<IN> serializer;
     private Boolean isTransactional;
-    private MongoClient mongoClient;
-    private MongoDatabase db;
-    private MongoCollection<Document> collection;
+    private transient MongoClient mongoClient;
+    private transient MongoDatabase db;
+    private transient MongoCollection<Document> collection;
     private long maxSize;
     private long bulkFlushInterval;
     private boolean flushOnCheckpoint;
 
-    public static <IN> DefaultMongoSinkBuilder<IN>  BuilderClient(String connectionString,
-                                                                 String database,
-                                                                 String username,
-                                                                 String collectionName,
-                                                                 String password, DocumentSerializer<IN> serializer) {
-        return new DefaultMongoSinkBuilder<IN>(connectionString, database, username, password, collectionName,serializer);
+    public static <IN> DefaultMongoSinkBuilder<IN>  BuilderClient(String username,
+                                                                  String password,
+                                                                  String servers,
+                                                                  DocumentSerializer<IN> serializer
+                                                                 ) {
+        return new DefaultMongoSinkBuilder<IN>(username, password, servers,serializer);
     }
 
     public static final class DefaultMongoSinkBuilder<IN>{
-        private final String connectionString;
-        private final String database;
+        private final String servers;
         private final String username;
         private final String password;
-        private final String collectionName;
-        private DocumentSerializer<IN> serializer;
-        private boolean isTransactional = Boolean.FALSE;
+        private final DocumentSerializer<IN> serializer ;
+        private String database;
+        private String collectionName;
+        private boolean isTransactional = false;
         private boolean retryWrites = true;
         private WriteConcern writeConcern = MAJORITY;
         private long timeout = -1L;
@@ -70,18 +71,15 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
         private long bulkFlushInterval = 1000L;
         private boolean flushOnCheckpoint = true;
 
-        public DefaultMongoSinkBuilder(String connectionString,
-                                       String database,
-                                       String username,
+        public DefaultMongoSinkBuilder(String username,
                                        String password,
-                                       String collectionName,
-                                       DocumentSerializer<IN> serializer) {
-            this.connectionString = connectionString;
-            this.database = database;
+                                       String servers,
+                                       DocumentSerializer<IN> serializer
+                                       ) {
+            this.servers = servers;
             this.username = username;
             this.password = password;
             this.serializer = serializer;
-            this.collectionName = collectionName;
         }
 
         public DefaultMongoSinkBuilder<IN>  isTransactional(final Boolean isTransactional) {
@@ -94,22 +92,22 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
             return this;
         }
 
-        public DefaultMongoSinkBuilder<IN>  acknowledgmentOfWriteOperations(final WriteConcern writeConcern) {
+        public DefaultMongoSinkBuilder<IN>  setAcknowledgmentOfWriteOperations(final WriteConcern writeConcern) {
             this.writeConcern = writeConcern;
             return this;
         }
 
-        public DefaultMongoSinkBuilder<IN>  serverSelectionTimeout(final long timeout) {
+        public DefaultMongoSinkBuilder<IN>  setServerSelectionTimeout(final long timeout) {
             this.timeout = timeout;
             return this;
         }
 
-        public DefaultMongoSinkBuilder<IN>  getBulkFlushInterval(final long bulkFlushInterval) {
+        public DefaultMongoSinkBuilder<IN>  setBulkFlushInterval(final long bulkFlushInterval) {
             this.bulkFlushInterval = bulkFlushInterval;
             return this;
         }
 
-        public DefaultMongoSinkBuilder<IN>  getMaxSize(final long maxSize) {
+        public DefaultMongoSinkBuilder<IN>  setMaxSize(final long maxSize) {
             this.maxSize = maxSize;
             return this;
         }
@@ -119,16 +117,25 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
             return this;
         }
 
+        public DefaultMongoSinkBuilder<IN> setDatabase(final String database) {
+            this.database = database;
+            return this;
+        }
+
+        public DefaultMongoSinkBuilder<IN> setCollection(final String collectionName) {
+            this.collectionName = collectionName;
+            return this;
+        }
+
         //最后返回对象
-        MongoSink build() {
-            return new MongoSink(this.connectionString, this.database, this.username, this.password, this.collectionName, this.serializer
+        public MongoSink build() {
+            return new MongoSink(this.servers, this.database, this.username, this.password, this.collectionName, this.serializer
             ,this.isTransactional,this.retryWrites,this.writeConcern,this.timeout,this.maxSize,this.bulkFlushInterval,this.flushOnCheckpoint);
         }
     }
 
-
     //有参构造
-    protected MongoSink(String connectionString,
+    protected MongoSink(String servers,
                         String database,
                         String username,
                         String password,
@@ -152,7 +159,7 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
 
         MongoCredential credential = MongoCredential.createCredential(username, database, password.toCharArray());
         List<ServerAddress> serverList = new ArrayList();
-        String[] serverAddressArr = connectionString.split(",");
+        String[] serverAddressArr = servers.split(",");
         for (String serverAddressStr : serverAddressArr) {
             if (serverAddressStr.contains(":")) {
                 serverList.add(new ServerAddress(serverAddressStr.split(":")[0],
@@ -169,9 +176,15 @@ public class MongoSink<IN> implements Sink<IN, DocumentBulk, DocumentBulk, Void>
                     builder.hosts(serverList);
                     builder.serverSelectionTimeout(timeout, TimeUnit.SECONDS);
                 }).build();
-        mongoClient = MongoClients.create(settings);
-        db = mongoClient.getDatabase(database);
-        collection = db.getCollection(collectionName);
+        try {
+            mongoClient = MongoClients.create(settings);
+            db = mongoClient.getDatabase(database);
+            collection = db.getCollection(collectionName);
+
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
 
     }
 
